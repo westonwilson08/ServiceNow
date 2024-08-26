@@ -1,0 +1,74 @@
+OVERVIEW:
+ServiceNow Agile Management Using Release Automation and Integration (SAMURAI) provides release automation capabilities for the ServiceNow environment. Stories with the product set to ServiceNow will be considered as part of the SAMURAI workflow. 
+
+SAMURAI uses an API to connect with the Dev instance and pulls in update sets on a daily basis. The update sets are linked on stories. When the Monday flow runs, a Change Request is created and creates a batch update set to be pulled in with the release on Thursday night. 
+
+Dev Update Sets are pulled in via API to the Dev Update Sets table
+Change request is created if any stories exist in "Ready to Deploy" state at 18:00 EST on Mondays. If no stories are in this state, an email is sent to the Admin team. 
+A batch update set is created 
+Update sets are queried on the story and added into the batch update set
+Update sets are marked as "Deployed" = True
+Change request is marked as "Assess" for approvals
+When Change is approved, batch update set is closed, retrieved, and previewed in Prod
+Notification is sent to Admin team with update set preview results
+Thursday night flow runs and checks whether the change is scheduled
+Batch update set is committed
+Notification is sent to the Admin team on the status of the update set commit
+Change request is closed 
+Stories and Incidents are closed. 
+
+Components: 
+Flows, subflows, and actions
+Daily flow (09:00 EST) pulls in Dev update sets 
+Monday Flow (18:00 EST) to create change request
+Thursday Flow (22:00 EST) to commit update sets when change is scheduled during flow run. 
+Custom fields and related lists on the Story (rm_story) table
+Custom field on the Update Set (sys_update_set) table
+Email notifications
+SAMURAI navigation module 
+System properties
+Import table for Dev update sets
+API Credentials
+
+LIMITATIONS:
+This application is not set up to be modular at this time. 
+A scheduled flow runs Monday and Thursday evenings. This can be modified to be a scheduled job to manually call the flow if more flexibility is needed. 
+This is configured with only 2 instances in mind: Dev and Prod. If a 3rd instance is introduced, some rework may be needed. 
+CR is directly assigned to specific developer
+
+PROCEDURE:
+A new story is created with product = ServiceNow. Stories are submitted from the service portal. 
+The Dev team is notified of story creation
+Story is assigned to developer
+Notification is sent to developer
+Story is moved to Work in Progress
+Email is sent to the "Requested for" user
+When development work is done, the story is moved to "Ready for Testing" which is a peer review state. Update sets are required during this state. The Dev Update Sets table allows for pulling in additional stories if they are not already in the list. Required update sets can be bypassed by checking the "No Update Sets" box. 
+Email is sent to assignment group that peer review is needed. 
+Peer review instructions are included in email notification. 
+samurai.peer.review.enabled needs to be true for this notification to trigger. 
+When the story is moved to Testing, this is UAT approval. Tests are required during this state. Required test can be bypassed by checking the "No Tests" checkbox. 
+An email is sent to the "Requested for" user and includes the related test article.  
+When story state is changed to "Ready to deploy", it will be pulled in for the next Monday's change request. 
+Monday at 18:00 EST, a change request is created and all stories in Ready to Deploy are associated to the CR. System property samurai.is.enabled must be "true". Then the CR is moved to Assess for approvals. The batch update set is named "CHG# - Weekly Release - [Date]"
+The Flow waits for the state to change and either crates a manual task for the Admin team or previews the update set to prepare for deployment. 
+The Admin team is notified of the results of the update set preview. Any conflicts need to be reviewed and resolved prior to the Thursday deployment. 
+Thursday night checks to see if a weekly release change request is "Scheduled" 
+The update set with the CR number is committed
+The Admin team is notified of the status of the commit
+The CR is closed and close code is populated based on the results of the commit. 
+Stories and Incidents included on the CR are closed or resolved
+The "Requested For" user on the story is notified that the story was deployed. 
+
+FUTURE ENHANCEMENTS:
+Pull xml files with weekly change
+Advanced change instructions
+Add automated support for Incident Update Sets
+Convert UAT to an approval 
+Make the flows more modular, for example:
+creating a system property to assign tickets
+creating scheduled jobs to execute flows, looking up schedules via system property
+If Flow Designer becomes more capable, use advanced trigger conditions instead of scheduled job
+Add support for additional ServiceNow environments
+Enforce story state progression
+Potentially rebuild as a custom application and/or package for share on the ServiceNow share site. 
